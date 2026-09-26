@@ -1,99 +1,118 @@
-<<<<<<< HEAD
 # Lumb
 
+App móvil en Flutter para gestionar **terapias de calor en la zona lumbar**. El nombre viene de *lumbar*.
 
+El usuario indica su nivel de dolor y con qué frecuencia lo siente. Con eso, la app genera un plan de sesiones (temperatura, duración y días de descanso) y controla el dispositivo de terapia por **Bluetooth**. El historial y el progreso quedan guardados en Firebase.
 
-## Getting started
+## Funcionalidades
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+- **Autenticación:** email y contraseña, Google y Facebook, con recuperación de contraseña.
+- **Plan de terapia:** se genera según el nivel de dolor (0–4). La temperatura va de 28 °C a 40 °C.
+- **Panel de control:** temperatura, temporizador y encendido/apagado del dispositivo.
+- **Conexión Bluetooth serial:** con el dispositivo emparejado (por ejemplo, un módulo HC-05).
+- **Sesiones:** calendario, estados (pendiente, completada, perdida) y feedback después de cada sesión.
+- **Gráficos de progreso** y gestión de dispositivos y perfil.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## Stack
 
-## Add your files
+| Área | Tecnología |
+|---|---|
+| Framework | Flutter (Dart `^3.5.3`) |
+| Estado | `flutter_bloc` (BLoC + Cubit) |
+| Inyección de dependencias | `get_it` |
+| Navegación | `go_router` |
+| Backend | Firebase Auth, Cloud Firestore, Storage |
+| Hardware | `flutter_bluetooth_serial` + `permission_handler` |
+| UI | `fl_chart`, `table_calendar`, `syncfusion_flutter_gauges`, `reactive_forms` |
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+## Arquitectura
+
+Clean Architecture organizada en capas dentro de `lib/`:
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/cesarcunyarache/Lumb.git
-git branch -M main
-git push -uf origin main
+lib/
+├── config/        # tema, colores, rutas, estilos, animaciones
+├── core/          # errores, utilidades, validadores, contrato UseCase
+├── domain/        # entidades, interfaces de repositorio, casos de uso
+├── data/          # modelos, servicios Firebase, implementaciones de repositorio
+├── presentation/  # blocs/cubits, pantallas y widgets
+├── inject_dependecies.dart  # registro en get_it
+└── main.dart
 ```
 
-## Integrate with your tools
+Los datos en Firestore se guardan bajo `Users/{uid}`: el perfil, las sesiones y los dispositivos.
 
-- [ ] [Set up project integrations](https://gitlab.com/cesarcunyarache/Lumb/-/settings/integrations)
+## Cómo arrancar el proyecto
 
-## Collaborate with your team
+### Requisitos
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+- Flutter SDK (stable) con Dart `>= 3.5.3`. Compruébalo con `flutter doctor`.
+- Android Studio o Xcode, según la plataforma.
+- Un proyecto de Firebase y la [FlutterFire CLI](https://firebase.google.com/docs/flutter/setup).
+- **Android real** para probar el Bluetooth. `flutter_bluetooth_serial` solo funciona en Android, y el mínimo es SDK 23.
 
-## Test and Deploy
+### 1. Clonar e instalar dependencias
 
-Use the built-in continuous integration in GitLab.
+```bash
+git clone https://github.com/cesarcunyarache/lumb.git
+cd lumb
+flutter pub get
+```
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+### 2. Configurar Firebase
 
-***
+Los archivos de configuración de Firebase **no están en el repo**, porque el `.gitignore` los excluye. Genéralos con tu propio proyecto:
 
-# Editing this README
+```bash
+dart pub global activate flutterfire_cli
+flutterfire configure
+```
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+Eso crea estos archivos:
 
-## Suggestions for a good README
+- `android/app/google-services.json`
+- `ios/Runner/GoogleService-Info.plist`
+- `macos/Runner/GoogleService-Info.plist`
+- `lib/firebase_options.dart`
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+En la consola de Firebase:
 
-## Name
-Choose a self-explaining name for your project.
+1. Activa **Authentication** con los proveedores Email/Password, Google y Facebook.
+2. Crea una base de datos de **Cloud Firestore** y un bucket de **Storage**.
+3. Para Google Sign-In en Android, registra el SHA-1 de tu keystore de debug:
+   ```bash
+   cd android && ./gradlew signingReport
+   ```
+4. Para Facebook Login, configura el App ID y el Client Token de tu app de Meta en Android e iOS. Sigue la guía de [`flutter_facebook_auth`](https://facebook.meedu.app/).
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+### 3. Ejecutar
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+```bash
+flutter devices   # lista los dispositivos disponibles
+flutter run       # arranca la app en el dispositivo conectado
+```
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+En iOS, instala primero los pods:
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+```bash
+cd ios && pod install && cd ..
+```
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+### Comandos útiles
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+```bash
+flutter analyze            # linter (flutter_lints)
+flutter build apk --release
+```
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+## Dispositivo Bluetooth
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+1. Empareja el dispositivo desde los ajustes de Bluetooth de Android.
+2. Abre la sección Bluetooth de la app y selecciónalo.
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+La app pide los permisos de Bluetooth y ubicación al iniciar. La comunicación es por **Bluetooth clásico (SPP)** y los comandos se envían como texto ASCII.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+## Notas
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
-=======
-# lumb
-
-A new Flutter project.
->>>>>>> Initial commit on main
+- La app usa el idioma y los formatos de fecha en español (`es_PE`).
+- Nunca subas al repo los archivos de Firebase ni los keystores (`*.jks`, `key.properties`).
